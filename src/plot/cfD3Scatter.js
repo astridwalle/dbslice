@@ -56,15 +56,78 @@ const cfD3Scatter = {
         const plotArea = svg.select(".plot-area");
         const dimId = this.dimId;
 
-        const xProperty = this.data.xProperty;
-        const yProperty = this.data.yProperty;
-        const cProperty = this.data.cProperty;
-
         const highlightTasks =layout.highlightTasks;
 
         const cfData = dbsliceData.session.cfData;
         const dim = cfData.continuousDims[ dimId ];
         const pointData = dim.top( Infinity );
+
+        let xProperty = this.data.xProperty;
+        let yProperty = this.data.yProperty;
+        let cProperty = this.data.cProperty;
+
+        if (this.layout.addSelectablePropertyToTitle) {
+            const boundPropertySelectChange = propertySelectChange.bind(this);
+            const plotTitle = d3.select(`#plot-title-text-${this._prid}-${this._id}`);
+            let dropdownX = plotTitle.select(".property-dropdown-x");
+            let dropdownY = plotTitle.select(".property-dropdown-y");
+            let dropdownC = plotTitle.select(".property-dropdown-c");
+            let selectIdX = `prop-select-x-${this._prid}-${this._id}`;
+            let selectIdY = `prop-select-y-${this._prid}-${this._id}`;
+            let selectIdC = `prop-select-c-${this._prid}-${this._id}`;
+            let selectableOptions = cfData.continuousProperties;
+            if (this.layout.selectableProperties !== undefined) {
+            selectableOptions = this.layout.selectableProperties;
+            }
+            if (dropdownX.empty() || dropdownY.empty() || dropdownC.empty()) {
+            let htmlX = 
+                `<select name="${selectIdX}" id="${selectIdX}">
+                ${selectableOptions.map(prop => `<option value="${prop}" ${prop==xProperty ? `selected`:``}>${prop}</option>`).join('')}
+                </select>`;
+            let htmlY = 
+                `<select name="${selectIdY}" id="${selectIdY}">
+                ${selectableOptions.map(prop => `<option value="${prop}" ${prop==yProperty ? `selected`:``}>${prop}</option>`).join('')}
+                </select>`;
+            let htmlC = 
+                `<select name="${selectIdC}" id="${selectIdC}">
+                ${selectableOptions.map(prop => `<option value="${prop}" ${prop==cProperty ? `selected`:``}>${prop}</option>`).join('')}
+                </select>`;
+            plotTitle.html("")
+                .append("div")
+                .attr("class","property-dropdown-x")
+                .html(htmlX);
+            plotTitle.append("div")
+                .attr("class","property-dropdown-y")
+                .html(htmlY);
+            plotTitle.append("div")
+                .attr("class","property-dropdown-c")
+                .html(htmlC);
+            document.getElementById(selectIdX).addEventListener("change", boundPropertySelectChange);
+            document.getElementById(selectIdY).addEventListener("change", boundPropertySelectChange);
+            document.getElementById(selectIdC).addEventListener("change", boundPropertySelectChange);
+            }
+        } else {
+            const plotTitle = d3.select(`#plot-title-text-${this._prid}-${this._id}`);
+            let dropdownX = plotTitle.select(".property-dropdown-x");
+            let dropdownY = plotTitle.select(".property-dropdown-y");
+            let dropdownC = plotTitle.select(".property-dropdown-c");
+            dropdownX.remove();
+            dropdownY.remove();
+            dropdownC.remove();
+            plotTitle.html(this.layout.title);
+        }
+
+        function propertySelectChange(event) {
+            const selectId = event.target.id;
+            if (selectId.includes("x")) {
+            this.data.xProperty = event.target.value;
+            } else if (selectId.includes("y")) {
+            this.data.yProperty = event.target.value;
+            } else if (selectId.includes("c")) {
+            this.data.cProperty = event.target.value;
+            }
+            this.update();
+        }
 
         let xRange, yRange;
         if ( layout.xRange === undefined) {
@@ -126,8 +189,24 @@ const cfD3Scatter = {
             .range( [height, 0] )
             .domain( yRange );
 
-        const colour = ( layout.colourMap === undefined ) ? d3.scaleOrdinal( d3.schemeTableau10 ) : d3.scaleOrdinal( layout.colourMap );
-        colour.domain( cfData.categoricalUniqueValues[ cProperty ] );
+       // Check if cProperty is continuous or categorical, or undefined
+       let colorScale;
+       if (cProperty) {
+           if (cfData.continuousProperties.includes(cProperty)) {
+               // If cProperty is continuous, use a linear color scale
+               const colorRange = layout.colorRange || ["#0000FF", "#FF0000"]; // Default blue to red
+               colorScale = d3.scaleSequential(d3.interpolateViridis)
+                   .domain(d3.extent(pointData, d => d[cProperty]));
+                   //.range(colorRange);
+           } else {
+               // If cProperty is categorical, use an ordinal color scale
+               const uniqueValues = cfData.categoricalUniqueValues[cProperty] || [];
+               colorScale = d3.scaleOrdinal(layout.colorMap || d3.schemeTableau10)
+                   .domain(uniqueValues);
+           }
+       }            
+        //const colour = ( layout.colourMap === undefined ) ? d3.scaleOrdinal( d3.schemeTableau10 ) : d3.scaleOrdinal( layout.colourMap );
+        //colour.domain( cfData.categoricalUniqueValues[ cProperty ] );
 
         const opacity = ( layout.opacity === undefined ) ? 1.0 : layout.opacity;
 
@@ -168,7 +247,7 @@ const cfD3Scatter = {
             .attr( "r", 5 )
             .attr( "cx", d => xscale( d[ xProperty ] ))
             .attr( "cy", d => yscale( d[ yProperty ] ))
-            .style( "fill", d => colour( d[ cProperty ] ))
+            .style( "fill", d => cProperty ? colorScale( d[ cProperty ] ) : "#d3d3d3") // Default to gray if no color property
             .style( "opacity", opacity )
             .attr( "clip-path", `url(#${clipId})`)
             .attr( "task-id", d => d.taskId )
@@ -179,11 +258,66 @@ const cfD3Scatter = {
             .attr( "r", 5 )
             .attr( "cx", d => xscale( d[ xProperty ] ))
             .attr( "cy", d => yscale( d[ yProperty ] ))
-            .style( "fill", d => colour( d[ cProperty ] ))
+            .style( "fill", d => colorScale( d[ cProperty ] ))
             .attr( "task-id", d => d.taskId )
       
 
         points.exit().remove();
+
+        // Add legend
+        const legendHeight = 200;
+        const legendWidth = 20;
+
+        const legend = plotArea.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${width + margin.right - legendWidth}, 10)`);
+
+        const legendScale = d3.scaleLinear()
+            .domain(colorScale.domain())
+            .range([legendHeight, 0]);
+
+        const legendAxis = d3.axisRight(legendScale)
+            .ticks(3); // Set the number of ticks to 3 for min, middle, and max
+
+        legend.append("g")
+            .attr("class", "axis")
+            .call(legendAxis);
+
+        const legendGradient = legend.append("defs")
+            .append("linearGradient")
+            .attr("id", "legendGradient")
+            .attr("x1", "0%")
+            .attr("y1", "100%")
+            .attr("x2", "0%")
+            .attr("y2", "0%");
+
+        // Add stops for the legend gradient based on d3.interpolateViridis
+        const legendStops = d3.range(0, 1.01, 0.1).map(d => ({
+            offset: `${d * 100}%`,
+            color: d3.interpolateViridis(d)
+        }));
+
+        legendStops.forEach(stop => {
+            legendGradient.append("stop")
+            .attr("offset", stop.offset)
+            .attr("stop-color", stop.color);
+        });
+
+        legend.append("rect")
+            .attr("width", legendWidth)
+            .attr("height", legendHeight)
+            .style("fill", "url(#legendGradient)");
+
+        // Remove old legend label if it exists
+        plotArea.selectAll(".legend-label").remove();
+
+        // Add cProperty label
+        legend.append("text")
+            .attr("class", "legend-label")
+            .attr("x", legendWidth / 2)
+            .attr("y", legendHeight + 30)
+            .attr("text-anchor", "middle")
+            .text(this.data.cProperty);
 
         const line = d3.line()
             .x( d => xscale( d[xProperty] ))
@@ -224,35 +358,40 @@ const cfD3Scatter = {
         let gX = plotArea.select(".axis-x");
         if ( gX.empty() ) {
             gX = plotArea.append("g")
-                .attr( "transform", `translate(0,${height})` )
-                .attr( "class", "axis-x")
-                .call( xAxis );
+            .attr( "transform", `translate(0,${height})` )
+            .attr( "class", "axis-x")
+            .call( xAxis );
             gX.append("text")
-                .attr("class","x-axis-text")
-                .attr("fill", "#000")
-                .attr("x", width)
-                .attr("y", margin.bottom-2)
-                .attr("text-anchor", "end")
-                .text(xProperty);
+            .attr("class","x-axis-text")
+            .attr("fill", "#000")
+            .attr("x", width)
+            .attr("y", margin.bottom-2)
+            .attr("text-anchor", "end")
+            .text(this.data.xProperty);
         } else {
             gX.transition().call( xAxis );
-            gX.select(".x-axis-text").attr("x",width);
+            gX.select(".x-axis-text")
+            .attr("x", width)
+            .text(this.data.xProperty); // Update the x-axis label text
         }
 
         let gY = plotArea.select(".axis-y");
         if ( gY.empty() ) {
             gY = plotArea.append("g")
-                .attr( "class", "axis-y")
-                .call( yAxis );
+            .attr( "class", "axis-y")
+            .call( yAxis );
             gY.append("text")
-                .attr("fill", "#000")
-                .attr("transform", "rotate(-90)")
-                .attr("x", 0)
-                .attr("y", -margin.left + 15)
-                .attr("text-anchor", "end")
-                .text(yProperty);
+            .attr("class", "y-axis-text")
+            .attr("fill", "#000")
+            .attr("transform", "rotate(-90)")
+            .attr("x", 0)
+            .attr("y", -margin.left + 15)
+            .attr("text-anchor", "end")
+            .text(this.data.yProperty);
         } else {
             gY.transition().call( yAxis );
+            gY.select(".y-axis-text")
+            .text(this.data.yProperty); // Update the y-axis label text
         }
 
 

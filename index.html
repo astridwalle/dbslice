@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Dataset Selection</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .dataset-list { margin-top: 20px; }
+        .dataset-item { cursor: pointer; padding: 10px; border: 1px solid #ddd; margin-bottom: 10px; width: fit-content; }
+        .dataset-item:hover { background-color: #f0f0f0; }
+    </style>
+</head>
+
+<body>
+
+    <h1>Select a Dataset</h1>
+    <div class="dataset-list" id="datasetList">
+        <!-- Dataset options will be populated here -->
+    </div>
+
+    <div class="container-fluid" id="target" style="display:none;"></div>
+
+    <script src="./build/dbslice.js"></script>
+
+    <script>
+        // Define available datasets
+        const datasets = ['drivaer','windsor', 'ahmed'];
+
+        // Populate dataset list
+        const datasetList = document.getElementById('datasetList');
+        datasets.forEach(dataset => {
+            const item = document.createElement('div');
+            item.className = 'dataset-item';
+            item.textContent = dataset;
+            item.addEventListener('click', () => loadDataset(dataset));
+            datasetList.appendChild(item);
+        });
+
+        // Function to load selected dataset
+        function loadDataset(dataset) {
+            const target = document.getElementById('target');
+            target.style.display = 'block'; // Show target container
+            datasetList.style.display = 'none'; // Hide dataset selection
+
+            // Start dbslice with the selected dataset's session.json
+            dbslice.start('target', `./datasets/${dataset}/session.json`);
+        }
+    </script>
+
+</body>
+</html>

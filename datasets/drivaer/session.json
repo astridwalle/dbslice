@@ -1,0 +1,67 @@
+{
+  "title": "DrivAer Data",
+  "metaDataConfig": {
+    "metaDataUrl": "https://cfdsolutions-public.s3.eu-central-1.amazonaws.com/drivaer/table_all.csv",
+    "metaDataCsv": true,
+    "generateTaskIds": true,
+    "taskIdRoot": "case_",
+    "taskIdFormat": "d",
+    "setLabelsToTaskIds": true
+  },
+  "uiConfig": {
+    "plotTasksButton": true,
+    "saveTasksButton": false,
+    "replaceTasksNameWith" : "Cases"
+  },
+  "plotRows": [
+    {
+      "title": "Meta Data",
+      "plots": [
+        {
+          "plotType": "cfD3Histogram",
+          "data": {
+            "property": "cd"
+          },
+          "layout": {
+            "title": "Histogram",
+            "colWidth": 4,
+            "height": 300,
+            "highlightTasks": true,
+	          "addSelectablePropertyToTitle": true
+          }
+        },
+        {
+          "plotType": "cfD3Scatter",
+          "data": {
+            "xProperty": "cl",
+            "yProperty": "cd",
+            "cProperty": "cd"
+          },
+          "layout": {
+            "title": "Scatter plot",
+            "colWidth": 6,
+            "height": 300,
+            "highlightTasks": true,
+            "addSelectablePropertyToTitle": true
+          }
+        }
+      ]
+    },
+    {
+      "title": "png pics",
+      "plots": [
+        {
+          "plotType": "cfD3ImageGrid",
+          "data": {
+            "imagepath": "data/run_${taskId}/images/fig_run${taskId}_evolution_Cd.png"
+          },
+          "layout": {
+            "title": "Cd evolution pics",
+            "columns": 4,
+            "height": 300
+          }
+        }
+      ]
+    }
+  ]
+}
