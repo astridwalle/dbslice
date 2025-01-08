@@ -7,6 +7,7 @@ import { cfD3ResSurfContour } from './cfD3ResSurfContour.js';
 import { cfD3GroupedVertBarChart } from './cfD3GroupedVertBarChart.js';
 import { cfD3CirclePack } from './cfD3CirclePack.js';
 import { cfD3Buttons } from './cfD3Buttons.js';
+import { cfD3ImageGrid } from './cfD3ImageGrid.js';
 import { cfLeafletMapWithMarkers } from './cfLeafletMapWithMarkers.js';
 import { d3ContourStruct2d } from './d3ContourStruct2d.js';
 import { d3CutLine } from './d3CutLine.js';
@@ -33,6 +34,7 @@ function getPlotFunc(plotType) {
         'cfD3ResSurfContour'      : cfD3ResSurfContour ,
         'cfD3GroupedVertBarChart' : cfD3GroupedVertBarChart ,
         'cfD3CirclePack'          : cfD3CirclePack ,
+        'cfD3ImageGrid'           : cfD3ImageGrid ,
         'cfLeafletMapWithMarkers' : cfLeafletMapWithMarkers ,
         'cfD3Buttons'             : cfD3Buttons ,
         'd3ContourStruct2d'       : d3ContourStruct2d ,
