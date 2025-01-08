@@ -53,7 +53,7 @@
         {
           "plotType": "cfD3ImageGrid",
           "data": {
-            "imagepath": "data/run_${taskId}/images/fig_run${taskId}_evolution_Cd.png"
+            "imagePath": "data/run_${taskId}/images/fig_run${taskId}_evolution_Cd.png"
           },
           "layout": {
             "title": "Cd evolution pics",
